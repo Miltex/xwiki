@@ -1,0 +1,51 @@
+version: '2'
+networks:
+  bridge:
+    driver: bridge
+services:
+  mariadb:
+    image: "mariadb:10.5"
+    container_name: xwiki-mariadb-db
+    volumes:
+      - ./config/xwiki.cnf:/etc/mysql/conf.d/xwiki.cnf
+      - mariadb-data:/var/lib/mysql
+      - ./data/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - MYSQL_ROOT_PASSWORD=xwiki
+      - MYSQL_USER=xwiki
+      - MYSQL_PASSWORD=xwiki
+      - MYSQL_DATABASE=xwiki
+    networks:
+      - bridge
+  web:
+    image: "xwiki:lts-mariadb-tomcat"
+    container_name: xwiki-mariadb-tomcat-web
+    depends_on:
+      - mariadb
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_USER=xwiki
+      - DB_PASSWORD=xwiki
+      - DB_HOST=xwiki-mariadb-db
+    volumes:
+      - xwiki-data:/usr/local/xwiki
+    networks:
+      - bridge
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: phpmyadmin
+    links:
+      - mariadb
+    networks:
+      - bridge
+    environment:
+      PMA_HOST: mariadb
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    restart: always
+    ports:
+      - 8081:80
+volumes:
+  mariadb-data: {}
+  xwiki-data: {}
